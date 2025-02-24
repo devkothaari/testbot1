@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chat Page</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="chat-container">
+    <div class="chat-header">
+      <h2>Chat Room</h2>
+      <p id="user-info"></p>
+    </div>
+    <div class="chat-messages" id="messages"></div>
+    <div class="typing-indicator" id="typing-indicator"></div>
+    <div class="chat-input">
+      <input type="text" id="message-input" placeholder="Type your message here..." autocomplete="off">
+      <button id="send-button">Send</button>
+    </div>
+  </div>
+
+  <!-- Socket.IO client library -->
+  <script src="http://localhost:3001/socket.io/socket.io.js"></script>
+  <!-- Firebase libraries and chat client code -->
+  <script type="module" src="chat.js"></script>
+</body>
+</html>

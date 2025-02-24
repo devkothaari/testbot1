@@ -28,8 +28,7 @@ document.getElementById('login-form').addEventListener('submit', (e) => {
   signInWithEmailAndPassword(auth, email, password)
     .then((userCredential) => {
       alert("Login successful!");
-      // Optionally redirect the user to a dashboard page:
-      // window.location.href = "dashboard.html";
+      window.location.href = "chat.html"; // Redirect to chat page upon login success
     })
     .catch((error) => {
       alert("Login Error: " + error.message);

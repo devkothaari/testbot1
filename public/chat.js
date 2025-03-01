@@ -1,7 +1,14 @@
 // chat.js
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-auth.js";
-import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-analytics.js";
+import { 
+  getFirestore, 
+  collection, 
+  addDoc, 
+  query, 
+  orderBy, 
+  onSnapshot 
+} from "https://www.gstatic.com/firebasejs/11.3.1/firebase-firestore.js";
 
 // Your Firebase configuration details
 const firebaseConfig = {
@@ -16,62 +23,85 @@ const firebaseConfig = {
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
 const auth = getAuth(app);
+const db = getFirestore(app);
 
-// Verify user is authenticated
+// Check for authenticated user
 onAuthStateChanged(auth, (user) => {
   if (user) {
-    document.getElementById('user-info').innerText = "Logged in as: " + user.email;
+    document.getElementById("user-info").innerText = "Logged in as: " + user.email;
+    startChat();
   } else {
     // Redirect to login if not authenticated
     window.location.href = "login.html";
   }
 });
 
-// Connect to the chat server via Socket.IO
-const socket = io('http://localhost:3001'); // Adjust URL if needed
+function startChat() {
+  const messagesDiv = document.getElementById("messages");
+  const messageInput = document.getElementById("message-input");
+  const sendButton = document.getElementById("send-button");
+  const typingIndicator = document.getElementById("typing-indicator");
 
-const messagesDiv = document.getElementById('messages');
-const messageInput = document.getElementById('message-input');
-const sendButton = document.getElementById('send-button');
-const typingIndicator = document.getElementById('typing-indicator');
+  // Send message on button click or when Enter is pressed
+  sendButton.addEventListener("click", sendMessage);
+  messageInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      sendMessage();
+    }
+  });
 
-// Send message on button click or Enter key
-sendButton.addEventListener('click', sendMessage);
-messageInput.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter') {
-    sendMessage();
-  } else {
-    // Emit typing event to the server
-    socket.emit('typing', "User is typing...");
+  async function sendMessage() {
+    const text = messageInput.value.trim();
+    if (text !== "") {
+      try {
+        // Call the HTTPS function to transform the message.
+        // Replace the URL below with your actual Cloud Function URL.
+        const response = await fetch(
+          "https://transformmessagehttp-fhlpw54wna-uc.a.run.app",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ text: text })
+          }
+        );
+        if (!response.ok) {
+          throw new Error("Transformation function error: " + response.statusText);
+        }
+        const result = await response.json();
+        // Use the transformed message
+        const finalMessage = result.transformed;
+        // Write the transformed message to Firestore using the sender's email
+        await addDoc(collection(db, "messages"), {
+          text: finalMessage,
+          sender: auth.currentUser.email,  // Use email instead of UID
+          timestamp: new Date()
+        });
+        messageInput.value = "";
+      } catch (error) {
+        console.error("Error sending message:", error);
+      }
+    }
   }
-});
 
-function sendMessage() {
-  const message = messageInput.value.trim();
-  if (message !== '') {
-    // Emit the chat message event to the server
-    socket.emit('chat message', message);
-    messageInput.value = '';
-    typingIndicator.innerText = '';
-  }
+  // Real-time listener for messages ordered by timestamp
+  const q = query(collection(db, "messages"), orderBy("timestamp"));
+  onSnapshot(q, (querySnapshot) => {
+    messagesDiv.innerHTML = "";
+    querySnapshot.forEach((doc) => {
+      const data = doc.data();
+      const messageElement = document.createElement("div");
+      messageElement.classList.add("message");
+      let timeStr = "";
+      if (data.timestamp) {
+        // Convert Firestore Timestamp to JS Date if necessary
+        const ts = data.timestamp.toDate ? data.timestamp.toDate() : new Date(data.timestamp);
+        timeStr = ` (${ts.toLocaleTimeString()})`;
+      }
+      // Display sender email, timestamp, and message text
+      messageElement.innerText = `${data.sender}${timeStr}: ${data.text}`;
+      messagesDiv.appendChild(messageElement);
+    });
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+  });
 }
-
-// Listen for incoming chat messages
-socket.on('chat message', (data) => {
-  const messageElement = document.createElement('div');
-  messageElement.classList.add('message');
-  // Display sender's id and the (possibly transformed) message
-  messageElement.innerText = data.sender + ": " + data.message;
-  messagesDiv.appendChild(messageElement);
-  messagesDiv.scrollTop = messagesDiv.scrollHeight;
-});
-
-// Listen for typing indicator events
-socket.on('typing', (data) => {
-  typingIndicator.innerText = data.message;
-  setTimeout(() => {
-    typingIndicator.innerText = '';
-  }, 2000);
-});

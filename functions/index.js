@@ -39,7 +39,7 @@ exports.transformMessageHTTP = functions.https.onRequest((req, res) => {
       return res.status(400).send("Bad Request: Missing 'text' field.");
     }
     const originalText = data.text;
-    const transformedText = originalText.replace(/whats up/gi, "wassup");
+    const transformedText = originalText.replace(/whats\s?up/gi, "wassup");
     res.json({
       original: originalText,
       transformed: transformedText,

@@ -18,7 +18,11 @@
   "homepage": "https://github.com/devkothaari/testbot1#readme",
   "description": "",
   "dependencies": {
+    "@genkit-ai/googleai": "^1.0.5",
     "express": "^4.21.2",
+    "firebase-functions": "^6.3.2",
+    "genkit": "^1.0.5",
+    "pdf-parse": "^1.1.1",
     "socket.io": "^4.8.1"
   }
 }

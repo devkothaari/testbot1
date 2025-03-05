@@ -32,7 +32,6 @@ onAuthStateChanged(auth, (user) => {
     document.getElementById("user-info").innerText = "Logged in as: " + user.email;
     startChat();
   } else {
-    // Redirect to login if not authenticated
     window.location.href = "login.html";
   }
 });
@@ -56,7 +55,6 @@ function startChat() {
     if (text !== "") {
       try {
         // Call the HTTPS function to transform the message.
-        // Replace the URL below with your actual Cloud Function URL.
         const response = await fetch(
           "https://transformmessagehttp-fhlpw54wna-uc.a.run.app",
           {
@@ -69,12 +67,11 @@ function startChat() {
           throw new Error("Transformation function error: " + response.statusText);
         }
         const result = await response.json();
-        // Use the transformed message
         const finalMessage = result.transformed;
         // Write the transformed message to Firestore using the sender's email
         await addDoc(collection(db, "messages"), {
           text: finalMessage,
-          sender: auth.currentUser.email,  // Use email instead of UID
+          sender: auth.currentUser.email,
           timestamp: new Date()
         });
         messageInput.value = "";
@@ -94,11 +91,9 @@ function startChat() {
       messageElement.classList.add("message");
       let timeStr = "";
       if (data.timestamp) {
-        // Convert Firestore Timestamp to JS Date if necessary
         const ts = data.timestamp.toDate ? data.timestamp.toDate() : new Date(data.timestamp);
         timeStr = ` (${ts.toLocaleTimeString()})`;
       }
-      // Display sender email, timestamp, and message text
       messageElement.innerText = `${data.sender}${timeStr}: ${data.text}`;
       messagesDiv.appendChild(messageElement);
     });
